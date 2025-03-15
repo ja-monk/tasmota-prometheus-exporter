@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask, Response
 import logging
 from logging.handlers import RotatingFileHandler
 import env
@@ -21,9 +21,9 @@ def tasmota_to_prometheus():
     url = f"http://{env.tasmota_ip}/cm?cmnd=Status+10"
     content = tasmota_query.tasmota_request(url)
     
-    print(content)
+    result = tasmota_query.format_prometheus(content, env.tasmota_ip)
 
-    return content
+    return Response(result, mimetype="text/plain")
 
 if __name__ == "__main__":
     log.info("Starting Tasmota Prometheus Exporter")

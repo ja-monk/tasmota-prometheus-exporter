@@ -19,14 +19,19 @@ app.logger.addHandler(log_handler)
 app.logger.setLevel(logging.INFO)
 log = app.logger
 
-import tasmota_query    # import after setting up logger as this uses same logger
+import tasmota    # import after setting up logger as this uses same logger
 
 @app.route("/metrics")
 def tasmota_to_prometheus():
-    url = f"http://{env.tasmota_ip}/cm?cmnd=Status+10"
-    content = tasmota_query.tasmota_request(url)
-    
-    result = tasmota_query.format_prometheus(content, env.tasmota_ip)
+    #result = tasmota_query.format_prometheus(content, env.tasmota_ip)
+    energy_data = tas.get_raw_metric_info()
+
+    print(prom_metrics)
+    print(energy_data)
+
+    result = []
+    for metric in prom_metrics:
+        result.append(tasmota.generate_latest(metric))
 
     return Response(result, mimetype="text/plain")
 
@@ -37,9 +42,22 @@ def signal_handler(signum, frame):
     log.info("Exiting")
     sys.exit(0)
 
-
-if __name__ == "__main__":
+def main():
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
+
     log.info("Starting Tasmota Prometheus Exporter")
+
+    global tas 
+    tas = tasmota.Tasmota_instance(env.tasmota_ip)
+    
+    raw_metrics = tas.get_raw_metric_info()
+    
+    global prom_metrics
+    prom_metrics = tas.generate_prom_metric(raw_metrics)
+
     app.run(host="0.0.0.0", port=5000, debug=True)
+
+
+if __name__ == "__main__":
+    main()

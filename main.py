@@ -1,6 +1,11 @@
+#!/usr/bin/env python
+
 from flask import Flask, Response
 import logging
 from logging.handlers import RotatingFileHandler
+import signal
+import sys
+
 import env
 
 app = Flask("tasmota-exporter")
@@ -25,6 +30,16 @@ def tasmota_to_prometheus():
 
     return Response(result, mimetype="text/plain")
 
+def signal_handler(signum, frame):
+    sig_name = signal.Signals(signum).name
+    message = f"Signal caught: {sig_name} ({signum})"
+    log.info(message)
+    log.info("Exiting")
+    sys.exit(0)
+
+
 if __name__ == "__main__":
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
     log.info("Starting Tasmota Prometheus Exporter")
     app.run(host="0.0.0.0", port=5000, debug=True)

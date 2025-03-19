@@ -16,20 +16,8 @@ class Tasmota_instance:
         "Voltage": "tasmota_voltage_V",
         "Current": "tasmota_current_A"
     }
-    
-    metric_type = {
-        "Total": "counter",
-        "Yesterday": "counter",
-        "Today": "counter",
-        "Power": "gauge",
-        "ApparentPower": "gauge",
-        "ReactivePower": "gauge",
-        "Factor": "gauge",
-        "Voltage": "gauge",
-        "Current": "gauge"
-    }
-    
-    def __init__(self, ip: str):
+     
+    def __init__(self, ip: str) -> None:
         self.url = f"http://{ip}/cm?cmnd=Status+10"
         
     def get_raw_metric_info(self) -> dict:
@@ -47,23 +35,15 @@ class Tasmota_instance:
         
         return raw_metrics
 
-    def generate_prom_metric(self, raw_metrics: dict) -> list:
+    def generate_prom_metric(self, raw_metrics: dict) -> dict:
         metric_name = self.metric_name
-        metric_type = self.metric_type
-        prom_metrics = []
+        prom_metrics = {}
         
         for metric in raw_metrics:
             if metric not in metric_name:
                 log.info(f"Metric {metric} not included in name mapping")
                 continue
-            if metric_type[metric] not in ["counter", "gauge"]:
-                log.info(f"Cannot find metric type for {metric}")
-                continue
-            if metric_type[metric] == "counter":
-                prom_metric = Counter(metric_name[metric], f"Tasmota Metric: {metric}")
-            elif metric_type[metric] == "gauge":
-                prom_metric = Gauge(metric_name[metric], f"Tasmota Metric: {metric}")
-            prom_metrics.append(prom_metric)
-        
+            prom_metrics[metric] = Gauge(metric_name[metric], f"- Tasmota Metric: {metric}")
+
         return prom_metrics
     
